@@ -2,7 +2,7 @@ class Terminoted < Formula
   desc "A terminal sticky notes & to-do app"
   homepage "https://github.com/1Verona/Terminoted"
   url "https://github.com/1Verona/Terminoted/archive/refs/tags/v1.0.0.tar.gz"
-  sha256 "PLACEHOLDER_SHA256"
+  sha256 "f7369936916fedeed866e43ddee34bb2e88b671fb04053e63939538a37b7db1e"
   license "MIT"
 
   depends_on "node"
