@@ -34,8 +34,48 @@ let currentTab = 'todo'; // 'todo' | 'notes'
 let editorOpen = false;
 let editorNoteIndex = -1;
 
-const screen = blessed.screen({ smartCSR: true, title: 'Ghostty Sticky Notes' });
+const screen = blessed.screen({ smartCSR: true, title: 'Terminoted' });
 screen.style = { bg: 'black' };
+
+// --- Splash screen ---
+const LOGO = [
+  '{cyan-fg}████████╗███████╗██████╗ ███╗   ███╗██╗███╗   ██╗ ██████╗ ████████╗███████╗██████╗{/cyan-fg}',
+  '{cyan-fg}╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║████╗  ██║██╔═══██╗╚══██╔══╝██╔════╝██╔══██╗{/cyan-fg}',
+  '{cyan-fg}   ██║   █████╗  ██████╔╝██╔████╔██║██║██╔██╗ ██║██║   ██║   ██║   █████╗  ██║  ██║{/cyan-fg}',
+  '{cyan-fg}   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██║   ██║   ██║   ██╔══╝  ██║  ██║{/cyan-fg}',
+  '{cyan-fg}   ██║   ███████╗██║  ██║██║ ╚═╝ ██║██║██║ ╚████║╚██████╔╝   ██║   ███████╗██████╔╝{/cyan-fg}',
+  '{cyan-fg}   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚══════╝╚═════╝{/cyan-fg}',
+  '',
+  '{gray-fg}                          your terminal notepad{/gray-fg}',
+].join('\n');
+
+const splash = blessed.box({
+  parent: screen,
+  top: 'center',
+  left: 'center',
+  width: 90,
+  height: 10,
+  align: 'center',
+  valign: 'middle',
+  tags: true,
+  content: LOGO,
+  style: { bg: 'black' }
+});
+
+screen.key(['q', 'C-c'], () => process.exit(0));
+screen.render();
+
+const startApp = () => {
+  splash.destroy();
+  buildUI();
+};
+
+setTimeout(startApp, 2000);
+screen.key(['enter', 'space'], () => {
+  if (!splash.detached) startApp();
+});
+
+const buildUI = () => {
 
 // --- Header ---
 const header = blessed.box({
@@ -451,3 +491,5 @@ screen.key(['d'], () => {
 
 refresh();
 todoList.focus();
+
+}; // end buildUI
