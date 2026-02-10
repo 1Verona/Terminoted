@@ -1,0 +1,20 @@
+{
+  "name": "terminoted",
+  "version": "1.0.0",
+  "description": "A terminal sticky notes & to-do app",
+  "main": "app.js",
+  "bin": {
+    "terminoted": "./bin/terminoted"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1Verona/Terminoted.git"
+  }
+}
