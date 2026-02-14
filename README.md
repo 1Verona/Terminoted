@@ -1,5 +1,5 @@
 
-<img width="180" height="180" alt="logo123" src="https://github.com/user-attachments/assets/84f9928a-d401-4bd1-bf71-95763b3a095f" />
+<img width="90" height="90" alt="logo123" src="https://github.com/user-attachments/assets/84f9928a-d401-4bd1-bf71-95763b3a095f" />
 
 
 terminal sticky notes & to-do app.
