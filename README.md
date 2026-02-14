@@ -1,7 +1,7 @@
 
-<img width="180" height="180" alt="Frame 1" src="https://github.com/user-attachments/assets/92961de9-32bc-4480-b155-13b737c14b26" />
+<img width="180" height="180" alt="logonovatermi" src="https://github.com/user-attachments/assets/bea1258a-ac66-414d-898e-6d7da5b5c5eb" />
 
-A terminal sticky notes & to-do app.
+terminal sticky notes & to-do app.
 
 ## Install
 
