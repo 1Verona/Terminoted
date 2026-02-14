@@ -1,5 +1,6 @@
 
-<img width="180" height="180" alt="logonovatermi" src="https://github.com/user-attachments/assets/bea1258a-ac66-414d-898e-6d7da5b5c5eb" />
+<img width="180" height="180" alt="logo123" src="https://github.com/user-attachments/assets/84f9928a-d401-4bd1-bf71-95763b3a095f" />
+
 
 terminal sticky notes & to-do app.
 
