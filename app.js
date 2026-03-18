@@ -33,6 +33,8 @@ try {
 let currentTab = 'todo'; // 'todo' | 'notes'
 let editorOpen = false;
 let editorNoteIndex = -1;
+let editorLines = [''];
+let editorCursor = { row: 0, col: 0 };
 
 const screen = blessed.screen({ smartCSR: true, title: 'Terminoted' });
 screen.style = { bg: 'black' };
@@ -62,7 +64,7 @@ const splash = blessed.box({
   style: { bg: 'black' }
 });
 
-screen.key(['q', 'C-c'], () => process.exit(0));
+screen.key(['q', 'C-c'], () => { if (!editorOpen) process.exit(0); });
 screen.render();
 
 const startApp = () => {
@@ -191,6 +193,23 @@ const notesEmpty = blessed.box({
 });
 
 
+// --- Note editor panel ---
+const editorPanel = blessed.box({
+  parent: screen,
+  top: 3,
+  bottom: 1,
+  left: 0,
+  right: 0,
+  border: { type: 'line' },
+  label: '',
+  tags: false,
+  hidden: true,
+  scrollable: true,
+  alwaysScroll: true,
+  keys: true,
+  style: { border: { fg: 'yellow' }, bg: 'black', fg: 'white' }
+});
+
 // --- Input bar ---
 const input = blessed.textbox({
   parent: screen,
@@ -291,30 +310,137 @@ const buildNotesView = () => {
 };
 
 // --- Editor ---
+const renderEditor = () => {
+  editorPanel.setContent(editorLines.join('\n'));
+
+  const innerHeight = editorPanel.height - 2;
+  const scrollOffset = editorPanel.childBase || 0;
+  if (editorCursor.row < scrollOffset) {
+    editorPanel.scrollTo(editorCursor.row);
+  } else if (editorCursor.row >= scrollOffset + innerHeight) {
+    editorPanel.scrollTo(editorCursor.row - innerHeight + 1);
+  }
+
+  screen.render();
+
+  const currentScroll = editorPanel.childBase || 0;
+  const termRow = editorPanel.atop + 1 + (editorCursor.row - currentScroll);
+  const termCol = editorPanel.aleft + 1 + editorCursor.col;
+  screen.program.cup(termRow, termCol);
+};
+
 const openEditor = (idx) => {
   editorOpen = true;
   editorNoteIndex = idx;
   const note = notes[idx];
 
-  const tmpFile = path.join(os.tmpdir(), `terminoted_${Date.now()}.md`);
-  fs.writeFileSync(tmpFile, note.content || '');
+  editorPanel.setLabel(`{bold}{yellow-fg} ${note.title} {/yellow-fg}{/bold}`);
+  editorLines = (note.content || '').split('\n');
+  if (editorLines.length === 0) editorLines = [''];
+  editorCursor = { row: 0, col: 0 };
 
-  const editor = process.env.VISUAL || process.env.EDITOR || 'nano';
+  todoPanel.hidden = true;
+  notesPanel.hidden = true;
+  input.hidden = true;
+  editorPanel.hidden = false;
+  header.hidden = true;
 
-  screen.exec(editor, [tmpFile], {}, () => {
-    try {
-      notes[idx].content = fs.readFileSync(tmpFile, 'utf8');
-      persistNotes();
-      fs.unlinkSync(tmpFile);
-    } catch (e) {}
+  footer.setContent('{yellow-fg}{bold} esc{/bold} save & back{/yellow-fg}');
 
-    editorOpen = false;
-    editorNoteIndex = -1;
-    refresh();
-    notesList.focus();
-    screen.render();
-  });
+  screen.program.showCursor();
+  editorPanel.focus();
+  renderEditor();
 };
+
+const closeEditor = () => {
+  if (editorNoteIndex >= 0 && editorNoteIndex < notes.length) {
+    notes[editorNoteIndex].content = editorLines.join('\n');
+    persistNotes();
+  }
+
+  editorOpen = false;
+  editorNoteIndex = -1;
+
+  screen.program.hideCursor();
+  editorPanel.hidden = true;
+  header.hidden = false;
+  input.hidden = false;
+
+  refresh();
+  notesList.focus();
+  screen.render();
+};
+
+screen.on('keypress', (ch, key) => {
+  if (!editorOpen) return;
+
+  const name = key ? key.name : null;
+
+  if (name === 'escape') { closeEditor(); return; }
+
+  if (name === 'up') {
+    if (editorCursor.row > 0) {
+      editorCursor.row--;
+      editorCursor.col = Math.min(editorCursor.col, editorLines[editorCursor.row].length);
+    }
+  } else if (name === 'down') {
+    if (editorCursor.row < editorLines.length - 1) {
+      editorCursor.row++;
+      editorCursor.col = Math.min(editorCursor.col, editorLines[editorCursor.row].length);
+    }
+  } else if (name === 'left') {
+    if (editorCursor.col > 0) {
+      editorCursor.col--;
+    } else if (editorCursor.row > 0) {
+      editorCursor.row--;
+      editorCursor.col = editorLines[editorCursor.row].length;
+    }
+  } else if (name === 'right') {
+    if (editorCursor.col < editorLines[editorCursor.row].length) {
+      editorCursor.col++;
+    } else if (editorCursor.row < editorLines.length - 1) {
+      editorCursor.row++;
+      editorCursor.col = 0;
+    }
+  } else if (name === 'enter' || name === 'return') {
+    const line = editorLines[editorCursor.row];
+    editorLines[editorCursor.row] = line.slice(0, editorCursor.col);
+    editorLines.splice(editorCursor.row + 1, 0, line.slice(editorCursor.col));
+    editorCursor.row++;
+    editorCursor.col = 0;
+  } else if (name === 'backspace') {
+    if (editorCursor.col > 0) {
+      const line = editorLines[editorCursor.row];
+      editorLines[editorCursor.row] = line.slice(0, editorCursor.col - 1) + line.slice(editorCursor.col);
+      editorCursor.col--;
+    } else if (editorCursor.row > 0) {
+      const prev = editorLines[editorCursor.row - 1];
+      const curr = editorLines[editorCursor.row];
+      editorCursor.col = prev.length;
+      editorLines[editorCursor.row - 1] = prev + curr;
+      editorLines.splice(editorCursor.row, 1);
+      editorCursor.row--;
+    }
+  } else if (name === 'delete') {
+    const line = editorLines[editorCursor.row];
+    if (editorCursor.col < line.length) {
+      editorLines[editorCursor.row] = line.slice(0, editorCursor.col) + line.slice(editorCursor.col + 1);
+    } else if (editorCursor.row < editorLines.length - 1) {
+      editorLines[editorCursor.row] = line + editorLines[editorCursor.row + 1];
+      editorLines.splice(editorCursor.row + 1, 1);
+    }
+  } else if (name === 'home') {
+    editorCursor.col = 0;
+  } else if (name === 'end') {
+    editorCursor.col = editorLines[editorCursor.row].length;
+  } else if (ch && key && !key.ctrl && !key.meta && ch.length === 1) {
+    const line = editorLines[editorCursor.row];
+    editorLines[editorCursor.row] = line.slice(0, editorCursor.col) + ch + line.slice(editorCursor.col);
+    editorCursor.col++;
+  }
+
+  renderEditor();
+});
 
 // --- Tab header ---
 const updateTabHeader = () => {
