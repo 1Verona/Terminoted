@@ -190,34 +190,6 @@ const notesEmpty = blessed.box({
   style: { fg: 'green', bg: 'black' }
 });
 
-// --- Note editor panel ---
-const editorPanel = blessed.box({
-  parent: screen,
-  top: 3,
-  bottom: 1,
-  left: 0,
-  right: 0,
-  border: { type: 'line' },
-  label: '',
-  tags: true,
-  hidden: true,
-  style: { border: { fg: 'yellow' }, bg: 'black' }
-});
-
-const editorArea = blessed.textarea({
-  parent: editorPanel,
-  top: 0,
-  left: 1,
-  right: 1,
-  bottom: 0,
-  keys: true,
-  inputOnFocus: true,
-  tags: false,
-  style: {
-    fg: 'white',
-    bg: 'black'
-  }
-});
 
 // --- Input bar ---
 const input = blessed.textbox({
@@ -324,38 +296,24 @@ const openEditor = (idx) => {
   editorNoteIndex = idx;
   const note = notes[idx];
 
-  editorPanel.setLabel(`{bold}{yellow-fg} ${note.title} {/yellow-fg}{/bold}`);
-  editorArea.setValue(note.content || '');
+  const tmpFile = path.join(os.tmpdir(), `terminoted_${Date.now()}.md`);
+  fs.writeFileSync(tmpFile, note.content || '');
 
-  todoPanel.hidden = true;
-  notesPanel.hidden = true;
-  input.hidden = true;
-  editorPanel.hidden = false;
+  const editor = process.env.VISUAL || process.env.EDITOR || 'nano';
 
-  header.hidden = true;
+  screen.exec(editor, [tmpFile], {}, () => {
+    try {
+      notes[idx].content = fs.readFileSync(tmpFile, 'utf8');
+      persistNotes();
+      fs.unlinkSync(tmpFile);
+    } catch (e) {}
 
-  footer.setContent('{yellow-fg}{bold} esc{/bold} save & back{/yellow-fg}');
-
-  editorArea.focus();
-  screen.render();
-};
-
-const closeEditor = () => {
-  // save content
-  if (editorNoteIndex >= 0 && editorNoteIndex < notes.length) {
-    notes[editorNoteIndex].content = editorArea.getValue() || '';
-    persistNotes();
-  }
-
-  editorOpen = false;
-  editorNoteIndex = -1;
-
-  editorPanel.hidden = true;
-  header.hidden = false;
-  input.hidden = false;
-
-  refresh();
-  notesList.focus();
+    editorOpen = false;
+    editorNoteIndex = -1;
+    refresh();
+    notesList.focus();
+    screen.render();
+  });
 };
 
 // --- Tab header ---
@@ -433,11 +391,6 @@ notesList.on('select', (item, index) => {
   if (index >= 0 && index < notes.length) {
     openEditor(index);
   }
-});
-
-// --- Editor escape to save & close ---
-editorArea.key(['escape'], () => {
-  closeEditor();
 });
 
 // --- Global keys ---
